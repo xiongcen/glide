@@ -4,6 +4,7 @@ import com.bumptech.glide.RequestManager;
 import java.util.Set;
 
 /**
+ * 保存请求树节点
  * Provides access to the relatives of a RequestManager based on the current context. The context
  * hierarchy is provided by nesting in Activity and Fragments; the application context does not
  * provide access to any other RequestManagers hierarchically.

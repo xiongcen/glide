@@ -82,6 +82,7 @@ public class RequestManagerFragment extends Fragment {
   }
 
   /**
+   * 看<href http://www.jianshu.com/p/317b2d6bde1b>的分析
    * Returns the set of fragments that this RequestManagerFragment's parent is a parent to. (i.e.
    * our parent is the fragment that we are annotating).
    */
@@ -95,7 +96,9 @@ public class RequestManagerFragment extends Fragment {
       // so just return an empty set.
       return Collections.emptySet();
     } else {
+        // 拿到Activity或者(fragment的activity)的子Fragment
       HashSet<RequestManagerFragment> descendants = new HashSet<>();
+        //遍历取出rootFragment中的RMF，并获取到其parentFragment，找出后裔。
       for (RequestManagerFragment fragment : rootRequestManagerFragment
           .getDescendantRequestManagerFragments()) {
         if (isDescendant(fragment.getParentFragment())) {
@@ -143,6 +146,16 @@ public class RequestManagerFragment extends Fragment {
     return false;
   }
 
+    /**
+     * 这个rootRequestManagerFragment通过getRequestManagerFragment()方法拿到，有可能是自身，有可能已经被初始化过了，
+     * 1. 如果是通过with(Activity activity)的形式创建的，rootRequestManagerFragment会是自己本身；
+     * 2. 如果是通过with(Fragment fragment)的形式创建的，rootRequestManagerFragment将指向当前fragment绑定到Activity所绑定的RequestManagerFragment，
+     * 如果该Activity没有绑定过，那么会开启事务绑定一个RequestManagerFragment。
+     * <p>
+     * 并且如果自己不是rootRequestManagerFragment的话，那么将会把自己保存到rootRequestManagerFragment中的一个集合
+     *
+     * @param activity
+     */
   private void registerFragmentWithRoot(Activity activity) {
     unregisterFragmentWithRoot();
     rootRequestManagerFragment = RequestManagerRetriever.get()
@@ -163,6 +176,8 @@ public class RequestManagerFragment extends Fragment {
   public void onAttach(Activity activity) {
     super.onAttach(activity);
     try {
+      // Glide每创建一个RequestManagerFragment，都会尝试实例化rootRequestManagerFragment，
+      // 这个fragment即顶级的Activity所创建的RequestManagerFragment
       registerFragmentWithRoot(activity);
     } catch (IllegalStateException e) {
       // OnAttach can be called after the activity is destroyed, see #497.
@@ -229,6 +244,7 @@ public class RequestManagerFragment extends Fragment {
 
     @Override
     public Set<RequestManager> getDescendants() {
+        // 调用外部类RequestManagerFragment的方法
       Set<RequestManagerFragment> descendantFragments = getDescendantRequestManagerFragments();
       HashSet<RequestManager> descendants = new HashSet<>(descendantFragments.size());
       for (RequestManagerFragment fragment : descendantFragments) {

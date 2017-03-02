@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Retriever英文翻译为：猎犬。
  * A collection of static methods for creating new {@link com.bumptech.glide.RequestManager}s or
  * retrieving existing ones from activities and fragment.
  */
@@ -111,6 +112,7 @@ public class RequestManagerRetriever implements Handler.Callback {
   }
 
   public RequestManager get(FragmentActivity activity) {
+    // 如果在子线程进行的with操作，那么Glide默认使用ApplicationContext，不对请求的生命周期进行管理
     if (Util.isOnBackgroundThread()) {
       return get(activity.getApplicationContext());
     } else {
@@ -166,12 +168,19 @@ public class RequestManagerRetriever implements Handler.Callback {
   }
 
   @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
+  /**
+   * 该方法创建了一个Fragment，并且创建并绑定了一个RequestManager
+   */
   RequestManagerFragment getRequestManagerFragment(
       final android.app.FragmentManager fm, android.app.Fragment parentHint) {
+    // 尝试根据id去找到此前创建的RequestManagerFragment
     RequestManagerFragment current = (RequestManagerFragment) fm.findFragmentByTag(FRAGMENT_TAG);
     if (current == null) {
+      // 如果没有找到，那么从临时存储中寻找
       current = pendingRequestManagerFragments.get(fm);
       if (current == null) {
+        // 如果仍然没有找到，那么新建一个RequestManagerFragment，并添加到临时存储中。
+        // 然后开启事务绑定fragment并使用handler发送消息来将临时存储的fragment移除。
         current = new RequestManagerFragment();
         current.setParentFragmentHint(parentHint);
         pendingRequestManagerFragments.put(fm, current);
@@ -185,10 +194,17 @@ public class RequestManagerRetriever implements Handler.Callback {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   RequestManager fragmentGet(Context context, android.app.FragmentManager fm,
       android.app.Fragment parentHint) {
+    // 获取RequestManagerFragment，并获取绑定到这个fragment的RequestManager
     RequestManagerFragment current = getRequestManagerFragment(fm, parentHint);
     RequestManager requestManager = current.getRequestManager();
     if (requestManager == null) {
       // TODO(b/27524013): Factor out this Glide.get() call.
+      /**
+       * 如果获取RequestManagerFragment还没有绑定过RequestManager,
+       * 那么就创建RequestManager并绑定到RequestManagerFragment
+       * RequestManager的构造函数内会将lifecycle加入
+       * @see com.bumptech.glide.manager.ActivityFragmentLifecycle#addListener()
+       */
       Glide glide = Glide.get(context);
       requestManager =
           new RequestManager(glide, current.getLifecycle(), current.getRequestManagerTreeNode());

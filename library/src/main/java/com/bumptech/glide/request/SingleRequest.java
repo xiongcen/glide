@@ -1,6 +1,7 @@
 package com.bumptech.glide.request;
 
 import android.content.res.Resources;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.drawable.Drawable;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.util.Pools;
@@ -200,6 +201,7 @@ public final class SingleRequest<R> implements Request,
   public void begin() {
     stateVerifier.throwIfRecycled();
     startTime = LogTime.getLogTime();
+    // 如果model空的，那么是不能执行的。 这里的model就是RequestBuilder中的model
     if (model == null) {
       if (Util.isValidDimensions(overrideWidth, overrideHeight)) {
         width = overrideWidth;
@@ -213,12 +215,18 @@ public final class SingleRequest<R> implements Request,
     }
 
     status = Status.WAITING_FOR_SIZE;
+    // 如果当前的View尺寸已经加载获取到了，就会进入真正的加载流程
     if (Util.isValidDimensions(overrideWidth, overrideHeight)) {
       onSizeReady(overrideWidth, overrideHeight);
     } else {
+      // 反之，当前View还没有画出来，那么是没有尺寸的。
+      // 这里会调用到ViewTreeObserver.addOnPreDrawListener。
+      // 等待View的尺寸都ok，才会继续
+      // 跟踪ViewTarget的getSize方法
       target.getSize(this);
     }
 
+    // 如果等待和正在执行状态，那么当前会加载占位符Drawable
     if ((status == Status.RUNNING || status == Status.WAITING_FOR_SIZE)
         && canNotifyStatusChanged()) {
       target.onLoadStarted(getPlaceholderDrawable());
@@ -360,6 +368,9 @@ public final class SingleRequest<R> implements Request,
   }
 
   /**
+   * 这里是真正的加载流程，主要是Engine发起load操作
+   * Engine创建在
+   * @see com.bumptech.glide.GlideBuilder#createGlide()
    * A callback method that should never be invoked directly.
    */
   @Override

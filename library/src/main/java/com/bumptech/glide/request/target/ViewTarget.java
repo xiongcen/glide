@@ -216,12 +216,14 @@ public abstract class ViewTarget<T extends View, Z> extends BaseTarget<Z> {
         // We want to notify callbacks in the order they were added and we only expect one or two
         // callbacks to
         // be added a time, so a List is a reasonable choice.
+        // 加入尺寸监听集合
         if (!cbs.contains(cb)) {
           cbs.add(cb);
         }
         if (layoutListener == null) {
           final ViewTreeObserver observer = view.getViewTreeObserver();
           layoutListener = new SizeDeterminerLayoutListener(this);
+          // 绘画之前加入尺寸的监听，接下来看SizeDeterminerLayoutListener代码
           observer.addOnPreDrawListener(layoutListener);
         }
       }
@@ -297,6 +299,7 @@ public abstract class ViewTarget<T extends View, Z> extends BaseTarget<Z> {
 
     private static class SizeDeterminerLayoutListener implements ViewTreeObserver
         .OnPreDrawListener {
+      // 弱引用
       private final WeakReference<SizeDeterminer> sizeDeterminerRef;
 
       public SizeDeterminerLayoutListener(SizeDeterminer sizeDeterminer) {
@@ -310,6 +313,8 @@ public abstract class ViewTarget<T extends View, Z> extends BaseTarget<Z> {
         }
         SizeDeterminer sizeDeterminer = sizeDeterminerRef.get();
         if (sizeDeterminer != null) {
+          // 通知SizeDeterminer去重新检查尺寸，并触发后续操作。
+          // SizeDeterminer有点像工具类，又作为尺寸回调的检测接口
           sizeDeterminer.checkCurrentDimens();
         }
         return true;

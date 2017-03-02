@@ -290,6 +290,7 @@ public final class GlideBuilder {
       arrayPool = new LruArrayPool(memorySizeCalculator.getArrayPoolSizeInBytes());
     }
 
+    // Glide的内存缓存默认使用LruResourceCache
     if (memoryCache == null) {
       memoryCache = new LruResourceCache(memorySizeCalculator.getMemoryCacheSize());
     }

@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
+ * 生命周期回调管理类
  * A {@link com.bumptech.glide.manager.Lifecycle} implementation for tracking and notifying
  * listeners of {@link android.app.Fragment} and {@link android.app.Activity} lifecycle events.
  */

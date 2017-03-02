@@ -40,24 +40,31 @@ class SourceGenerator implements DataFetcherGenerator,
   @Override
   public boolean startNext() {
     if (dataToCache != null) {
+      // 当下载成功后缓存存在的时候走进if条件
       Object data = dataToCache;
       dataToCache = null;
       cacheData(data);
     }
 
     if (sourceCacheGenerator != null && sourceCacheGenerator.startNext()) {
+      // 当有sourceCacheGenerator，会执行sourceCacheGenerator#startNext()方法
       return true;
     }
     sourceCacheGenerator = null;
 
     loadData = null;
     boolean started = false;
+    // 查找ModelLoader
     while (!started && hasNextModelLoader()) {
       loadData = helper.getLoadData().get(loadDataListIndex++);
       if (loadData != null
           && (helper.getDiskCacheStrategy().isDataCacheable(loadData.fetcher.getDataSource())
           || helper.hasLoadPath(loadData.fetcher.getDataClass()))) {
         started = true;
+        // 根据model的fetcher加载数据
+        /** 这个model的fetcher的设置是在
+         * @see com.bumptech.glide.Glide#get(android.content.Context)
+         * 中通过查找AndroidManifest里的配置决定的*/
         loadData.fetcher.loadData(helper.getPriority(), this);
       }
     }
@@ -71,10 +78,12 @@ class SourceGenerator implements DataFetcherGenerator,
   private void cacheData(Object dataToCache) {
     long startTime = LogTime.getLogTime();
     try {
+      // 根据不同的数据获取注册的不同Encoder
       Encoder<Object> encoder = helper.getSourceEncoder(dataToCache);
       DataCacheWriter<Object> writer =
           new DataCacheWriter<>(encoder, dataToCache, helper.getOptions());
       originalKey = new DataCacheKey(loadData.sourceKey, helper.getSignature());
+      // 这里的DiskCache实现是Engine中LazyDiskCacheProvider提供的DiskCacheAdapter
       helper.getDiskCache().put(originalKey, writer);
       if (Log.isLoggable(TAG, Log.VERBOSE)) {
         Log.v(TAG, "Finished encoding source to cache"
@@ -87,6 +96,7 @@ class SourceGenerator implements DataFetcherGenerator,
       loadData.fetcher.cleanup();
     }
 
+    // 创建针对缓存的Generator
     sourceCacheGenerator =
         new DataCacheGenerator(Collections.singletonList(loadData.sourceKey), helper, this);
   }
@@ -100,12 +110,16 @@ class SourceGenerator implements DataFetcherGenerator,
   }
 
   @Override
+  /**
+   * 数据下载完成后的缓存处理
+   */
   public void onDataReady(Object data) {
     DiskCacheStrategy diskCacheStrategy = helper.getDiskCacheStrategy();
     if (data != null && diskCacheStrategy.isDataCacheable(loadData.fetcher.getDataSource())) {
       dataToCache = data;
       // We might be being called back on someone else's thread. Before doing anything, we should
       // reschedule to get back onto Glide's thread.
+      // 这里相当于调用DecodeJob.reschedule()
       cb.reschedule();
     } else {
       cb.onDataFetcherReady(loadData.sourceKey, data, loadData.fetcher,

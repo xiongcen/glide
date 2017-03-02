@@ -358,6 +358,7 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
     requestOptions.lock();
     Request request = buildRequest(target);
     target.setRequest(request);
+    // 图片加载开始的方法
     requestManager.track(target, request);
 
     return target;

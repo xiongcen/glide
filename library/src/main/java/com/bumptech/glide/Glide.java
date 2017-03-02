@@ -153,6 +153,10 @@ public class Glide implements ComponentCallbacks2 {
           }
           glide = builder.createGlide();
           for (GlideModule module : modules) {
+            /**
+             * module很重要，决定了未来请求使用的类型！！！
+             * 这里假设使用
+             * @see com.bumptech.glide.integration.okhttp3.OkHttpGlideModule */
             module.registerComponents(applicationContext, glide.registry);
           }
         }

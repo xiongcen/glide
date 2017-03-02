@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
+ * RequestTracker即所有请求操作的真正处理者，所有Request的暂停取消执行操作都由RequestTracker来完成
  * A class for tracking, canceling, and restarting in progress, completed, and failed requests.
  *
  * <p>This class is not thread safe and must be accessed on the main thread.
@@ -35,10 +36,13 @@ public class RequestTracker {
    * Starts tracking the given request.
    */
   public void runRequest(Request request) {
+    // 添加内存缓存
     requests.add(request);
     if (!isPaused) {
+      // 开始请求
       request.begin();
     } else {
+      // 挂起请求
       pendingRequests.add(request);
     }
   }

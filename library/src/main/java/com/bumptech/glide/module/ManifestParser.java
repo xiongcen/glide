@@ -20,6 +20,10 @@ public final class ManifestParser {
     this.context = context;
   }
 
+  /**
+   * 从AndroidManifest.xml文件里读取的配置项，可配置网络请求的类型
+   * @return
+     */
   public List<GlideModule> parse() {
     if (Log.isLoggable(TAG, Log.DEBUG)) {
       Log.d(TAG, "Loading Glide modules");

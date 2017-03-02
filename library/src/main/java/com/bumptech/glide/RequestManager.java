@@ -87,7 +87,7 @@ public class RequestManager implements LifecycleListener {
 
     final Context context = glide.getGlideContext().getBaseContext();
 
-
+    // 创建网络监控者
     connectivityMonitor =
         factory.build(context, new RequestManagerConnectivityListener(requestTracker));
 
@@ -466,6 +466,7 @@ public class RequestManager implements LifecycleListener {
     @Override
     public void onConnectivityChanged(boolean isConnected) {
       if (isConnected) {
+        // 收到网络状态连接就重启请求
         requestTracker.restartRequests();
       }
     }

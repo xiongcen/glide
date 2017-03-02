@@ -234,8 +234,10 @@ class DecodeJob<R> implements DataFetcherGenerator.FetcherReadyCallback,
   private void runWrapped() {
      switch (runReason) {
       case INITIALIZE:
+        // 初始化 获取下一个阶段状态
         stage = getNextStage(Stage.INITIALIZE);
         currentGenerator = getNextGenerator();
+        // 运行 Generator：译为生产者
         runGenerators();
         break;
       case SWITCH_TO_SOURCE_SERVICE:
@@ -249,13 +251,21 @@ class DecodeJob<R> implements DataFetcherGenerator.FetcherReadyCallback,
     }
   }
 
+  /**
+   * 根据Stage找到数据抓取生成器
+   * @return
+     */
   private DataFetcherGenerator getNextGenerator() {
     switch (stage) {
       case RESOURCE_CACHE:
+        // 产生含有降低采样/转换资源数据缓存文件的DataFetcher。
         return new ResourceCacheGenerator(decodeHelper, this);
       case DATA_CACHE:
+        // 产生包含原始未修改的源数据缓存文件的DataFetcher。
         return new DataCacheGenerator(decodeHelper, this);
       case SOURCE:
+        // 生成使用注册的ModelLoader和加载时提供的Model获取源数据规定的DataFetcher。
+        // 根据不同的磁盘缓存策略，源数据可首先被写入到磁盘，然后从缓存文件中加载，而不是直接返回。
         return new SourceGenerator(decodeHelper, this);
       case FINISHED:
         return null;
@@ -269,6 +279,7 @@ class DecodeJob<R> implements DataFetcherGenerator.FetcherReadyCallback,
     startFetchTime = LogTime.getLogTime();
     boolean isStarted = false;
     while (!isCancelled && currentGenerator != null
+            // 来到发起实际请求的地方 SourceGenerator#startNext()
         && !(isStarted = currentGenerator.startNext())) {
       stage = getNextStage(stage);
       currentGenerator = getNextGenerator();
@@ -307,9 +318,20 @@ class DecodeJob<R> implements DataFetcherGenerator.FetcherReadyCallback,
     isCallbackNotified = true;
   }
 
+  /**
+   * 这里的阶段策略首先是从resource中寻找，然后再是data，再是source
+   * @param current
+   * @return
+     */
   private Stage getNextStage(Stage current) {
     switch (current) {
       case INITIALIZE:
+        /**
+         * 根据定义的缓存策略来回去下一个状态
+         * 缓存策略来之于RequestBuilder的requestOptions域
+         * 如果你有自定义的策略，可以调用RequestBuilder.apply方法即可
+         * 详细的可用缓存策略请参看
+         *  @see com.bumptech.glide.load.engine.DiskCacheStrategy */
         return diskCacheStrategy.decodeCachedResource()
             ? Stage.RESOURCE_CACHE : getNextStage(Stage.RESOURCE_CACHE);
       case RESOURCE_CACHE:

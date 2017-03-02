@@ -158,11 +158,14 @@ public class Engine implements EngineJobListener,
     Util.assertMainThread();
     long startTime = LogTime.getLogTime();
 
+    // 创建key，这是给每次加载资源的唯一标示。
     EngineKey key = keyFactory.buildKey(model, signature, width, height, transformations,
         resourceClass, transcodeClass, options);
 
+    // 通过key查找缓存资源 （PS 这里的缓存主要是内存中的缓存，该类成员变量MemoryCache cache）
     EngineResource<?> cached = loadFromCache(key, isMemoryCacheable);
     if (cached != null) {
+      // 如果有，那么直接利用当前缓存的资源。
       cb.onResourceReady(cached, DataSource.MEMORY_CACHE);
       if (Log.isLoggable(TAG, Log.VERBOSE)) {
         logWithTimeAndKey("Loaded resource from cache", startTime, key);
@@ -170,6 +173,8 @@ public class Engine implements EngineJobListener,
       return null;
     }
 
+    // 这是一个二级内存的缓存引用，很简单用了一个Map<Key, WeakReference<EngineResource<?>>>装载起来的。
+    // 在loadFromCache()中有调用
     EngineResource<?> active = loadFromActiveResources(key, isMemoryCacheable);
     if (active != null) {
       cb.onResourceReady(active, DataSource.MEMORY_CACHE);
@@ -179,8 +184,10 @@ public class Engine implements EngineJobListener,
       return null;
     }
 
+    // 根据key获取缓存的job
     EngineJob<?> current = jobs.get(key);
     if (current != null) {
+      // 给当前job添加上回调Callback
       current.addCallback(cb);
       if (Log.isLoggable(TAG, Log.VERBOSE)) {
         logWithTimeAndKey("Added to existing load", startTime, key);
@@ -188,6 +195,9 @@ public class Engine implements EngineJobListener,
       return new LoadStatus(cb, current);
     }
 
+    // 创建job
+    // EngineJob充当了管理和调度者，主要负责加载和各类回调通知；
+    // DecodeJob是真正干活的劳动者，这个类实现了Runnable接口
     EngineJob<R> engineJob = engineJobFactory.build(key, isMemoryCacheable,
         useUnlimitedSourceExecutorPool);
     DecodeJob<R> decodeJob = decodeJobFactory.build(
@@ -207,6 +217,7 @@ public class Engine implements EngineJobListener,
         engineJob);
     jobs.put(key, engineJob);
     engineJob.addCallback(cb);
+    // 放入线程池，执行
     engineJob.start(decodeJob);
 
     if (Log.isLoggable(TAG, Log.VERBOSE)) {
